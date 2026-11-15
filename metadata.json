@@ -1,0 +1,6 @@
+{
+  "name": "NEON AI TRADING HQ",
+  "description": "Autonomous AI Trading Company & 3D Virtual Headquarters for Binance USDⓈ-M Futures",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

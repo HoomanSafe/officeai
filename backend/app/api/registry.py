@@ -1,0 +1,107 @@
+import os
+
+ROOMS_REGISTRY = [
+    {"id": "CEO_OFFICE", "code": "RM-01", "name": "CEO Office", "wing": "North Wing"},
+    {"id": "TRADING_FLOOR", "code": "RM-02", "name": "Trading Floor", "wing": "Central Hub"},
+    {"id": "TECHNICAL_ROOM", "code": "RM-03", "name": "Technical Analysis Room", "wing": "West Wing"},
+    {"id": "SMC_ROOM", "code": "RM-04", "name": "Smart Money Concepts Room", "wing": "West Wing"},
+    {"id": "ORDER_FLOW_LAB", "code": "RM-05", "name": "Order Flow Lab", "wing": "East Wing"},
+    {"id": "QUANT_LAB", "code": "RM-06", "name": "Quantitative Research Lab", "wing": "East Wing"},
+    {"id": "RISK_OFFICE", "code": "RM-07", "name": "Risk Management Office", "wing": "North Wing"},
+    {"id": "EXECUTION_CENTER", "code": "RM-08", "name": "Execution Center", "wing": "South Wing"},
+    {"id": "AI_WAR_ROOM", "code": "RM-09", "name": "AI War Room / Conference Room", "wing": "North Wing"},
+]
+
+EMPLOYEES_REGISTRY = [
+    {
+        "id": "emp-01",
+        "code": "EMP-01",
+        "name": "Marcus Vance",
+        "title": "CEO / Chief AI Officer",
+        "home_room": "CEO_OFFICE",
+        "current_room": "CEO_OFFICE",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-02",
+        "code": "EMP-02",
+        "name": "Elena Rostova",
+        "title": "Head Trader",
+        "home_room": "TRADING_FLOOR",
+        "current_room": "TRADING_FLOOR",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-03",
+        "code": "EMP-03",
+        "name": "Kenji Sato",
+        "title": "Technical Analyst",
+        "home_room": "TECHNICAL_ROOM",
+        "current_room": "TECHNICAL_ROOM",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-04",
+        "code": "EMP-04",
+        "name": "Aria Thorne",
+        "title": "Smart Money Concepts Analyst",
+        "home_room": "SMC_ROOM",
+        "current_room": "SMC_ROOM",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-05",
+        "code": "EMP-05",
+        "name": "Devon Brooks",
+        "title": "Order Flow Analyst",
+        "home_room": "ORDER_FLOW_LAB",
+        "current_room": "ORDER_FLOW_LAB",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-06",
+        "code": "EMP-06",
+        "name": "Dr. Nadia Lin",
+        "title": "Quantitative Research Analyst",
+        "home_room": "QUANT_LAB",
+        "current_room": "QUANT_LAB",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+    {
+        "id": "emp-07",
+        "code": "EMP-07",
+        "name": "Victor Krell",
+        "title": "Chief Risk Officer",
+        "home_room": "RISK_OFFICE",
+        "current_room": "RISK_OFFICE",
+        "state": "IDLE",
+        "can_veto": True,
+    },
+    {
+        "id": "emp-08",
+        "code": "EMP-08",
+        "name": "Soren Lindqvist",
+        "title": "Execution Manager",
+        "home_room": "EXECUTION_CENTER",
+        "current_room": "EXECUTION_CENTER",
+        "state": "IDLE",
+        "can_veto": False,
+    },
+]
+
+
+def get_honest_integration_status() -> dict:
+    return {
+        "binance_testnet": "STANDBY" if os.getenv("BINANCE_API_KEY") else "NOT_CONNECTED",
+        "binance_live": "LOCKED",
+        "gemini_provider": "STANDBY" if os.getenv("GEMINI_API_KEY") else "NOT_CONNECTED",
+        "claude_provider": "STANDBY" if os.getenv("ANTHROPIC_API_KEY") else "NOT_CONNECTED",
+        "postgres": "CONFIGURED" if os.getenv("DATABASE_URL") else "NOT_CONNECTED",
+        "redis": "CONFIGURED" if os.getenv("REDIS_URL") else "NOT_CONNECTED",
+    }
