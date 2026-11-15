@@ -1,7 +1,4 @@
-
 from datetime import datetime, timezone
-from urllib.request import urlopen
-
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
@@ -12,17 +9,12 @@ from backend.app.api.registry import (
 )
 from backend.app.config import settings
 
-
 app = FastAPI(
     title="NEON AI TRADING HQ — Phase 2 Backend",
     version="0.2.0",
     description="Autonomous AI Trading Company Foundation & AI Employees (Phase 2)",
 )
 
-
-# ============================================================
-# REQUEST MODELS
-# ============================================================
 
 class DispatchPayload(BaseModel):
     target_room: str
@@ -33,10 +25,6 @@ class DispatchPayload(BaseModel):
 class ModePayload(BaseModel):
     mode: str
 
-
-# ============================================================
-# WEBSOCKET CONNECTION MANAGER
-# ============================================================
 
 class ConnectionManager:
     def __init__(self) -> None:
@@ -58,39 +46,6 @@ class ConnectionManager:
 ws_manager = ConnectionManager()
 
 
-# ============================================================
-# NETWORK DIAGNOSTICS
-# ============================================================
-
-@app.get("/api/check-ip")
-async def check_ip():
-    """
-    Detect the outbound public IP used by this backend runtime.
-
-    This endpoint is intended for temporary network diagnostics.
-    The detected IP is not guaranteed to be static.
-    """
-    try:
-        with urlopen("https://api.ipify.org", timeout=10) as response:
-            ip = response.read().decode("utf-8").strip()
-
-        return {
-            "status": "success",
-            "outbound_ip": ip,
-            "note": "IP detected from backend runtime. It may not be static."
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to detect outbound IP: {str(e)}"
-        )
-
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
 @app.get("/api/health")
 async def health_check():
     return {
@@ -104,109 +59,58 @@ async def health_check():
     }
 
 
-# ============================================================
-# ROOMS
-# ============================================================
-
 @app.get("/api/rooms")
 async def list_rooms():
     return {"rooms": ROOMS_REGISTRY}
 
-
-# ============================================================
-# EMPLOYEES
-# ============================================================
 
 @app.get("/api/employees")
 async def list_employees():
     return {"employees": EMPLOYEES_REGISTRY}
 
 
-# ============================================================
-# TRADING MODE
-# ============================================================
-
 @app.post("/api/mode")
 async def update_mode(payload: ModePayload):
     mode = payload.mode.upper()
-
     if mode not in {"DEMO", "PAPER", "TESTNET", "LIVE"}:
-        raise HTTPException(
-            status_code=400,
-            detail="Unsupported trading mode."
-        )
-
+        raise HTTPException(status_code=400, detail="Unsupported trading mode.")
     if mode == "LIVE" and not settings.live_trading_enabled:
         raise HTTPException(
             status_code=403,
             detail="LIVE mode is strictly locked until Phase 5-7 validation passes.",
         )
+    return {"ok": True, "mode": mode, "live_locked": not settings.live_trading_enabled}
 
-    return {
-        "ok": True,
-        "mode": mode,
-        "live_locked": not settings.live_trading_enabled
-    }
-
-
-# ============================================================
-# EMPLOYEE DISPATCH
-# ============================================================
 
 @app.post("/api/employees/{employee_id}/dispatch")
 async def dispatch_employee(employee_id: str, payload: DispatchPayload):
-    emp = next(
-        (e for e in EMPLOYEES_REGISTRY if e["id"] == employee_id),
-        None
-    )
-
+    emp = next((e for e in EMPLOYEES_REGISTRY if e["id"] == employee_id), None)
     if emp is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Employee not found."
-        )
-
+        raise HTTPException(status_code=404, detail="Employee not found.")
     if not any(r["id"] == payload.target_room for r in ROOMS_REGISTRY):
-        raise HTTPException(
-            status_code=400,
-            detail="Target room not found."
-        )
+        raise HTTPException(status_code=400, detail="Target room not found.")
 
     emp["current_room"] = payload.target_room
     emp["state"] = payload.state
+    await ws_manager.broadcast({"type": "employee:updated", "payload": emp})
+    return {"ok": True, "employee": emp, "task_title": payload.task_title}
 
-    await ws_manager.broadcast({
-        "type": "employee:updated",
-        "payload": emp
-    })
-
-    return {
-        "ok": True,
-        "employee": emp,
-        "task_title": payload.task_title
-    }
-
-
-# ============================================================
-# WEBSOCKET
-# ============================================================
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
-
-    await websocket.send_json({
-        "type": "office:snapshot",
-        "payload": {
-            "rooms": ROOMS_REGISTRY,
-            "employees": EMPLOYEES_REGISTRY,
-            "mode": settings.trading_mode,
-        },
-    })
-
+    await websocket.send_json(
+        {
+            "type": "office:snapshot",
+            "payload": {
+                "rooms": ROOMS_REGISTRY,
+                "employees": EMPLOYEES_REGISTRY,
+                "mode": settings.trading_mode,
+            },
+        }
+    )
     try:
         while True:
             await websocket.receive_text()
-
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
