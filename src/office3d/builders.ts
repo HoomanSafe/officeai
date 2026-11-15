@@ -167,8 +167,8 @@ function getRoomScreenLines(room: RoomDefinition): string[] {
       return [
         'MAX RISK/TRADE: 0.15% Equity',
         'MAX DAILY LOSS: 1.00%',
-        'MAX POSITIONS: 2 · ISOLATED',
-        'FAIL-CLOSED: Armed',
+        'MAX POSITIONS: 2 · CROSS MARGIN',
+        'VERIFIED SL: Mandatory Fail-Closed',
       ];
     case 'TECHNICAL_ROOM':
       return [

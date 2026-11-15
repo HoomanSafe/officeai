@@ -28,7 +28,7 @@ export type NavSection =
   | 'WAR_ROOM'
   | 'MARKET_ANALYSIS'
   | 'POSITIONS'
-  | 'TRADE_JOURNAL'
+  | 'TRADE_HISTORY'
   | 'ANALYTICS'
   | 'SETTINGS';
 
@@ -39,7 +39,7 @@ export const NAV_ITEMS: Array<{ id: NavSection; label: string; icon: typeof Buil
   { id: 'WAR_ROOM', label: 'AI War Room', icon: MessageSquareCode },
   { id: 'MARKET_ANALYSIS', label: 'Market Analysis', icon: CandlestickChart },
   { id: 'POSITIONS', label: 'Positions', icon: Wallet },
-  { id: 'TRADE_JOURNAL', label: 'Trade Journal', icon: ScrollText },
+  { id: 'TRADE_HISTORY', label: 'Trade History', icon: ScrollText },
   { id: 'ANALYTICS', label: 'Analytics', icon: Activity },
   { id: 'SETTINGS', label: 'Settings', icon: Settings },
 ];

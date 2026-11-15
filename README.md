@@ -24,3 +24,13 @@ Autonomous AI Trading Company & 3D Virtual Headquarters for Binance USDⓈ-M Fut
    copy backend\.env.example backend\.env
    docker compose up -d --build
    ```
+
+## Deploy ke Vercel
+Project ini sudah dilengkapi `vercel.json` dan Serverless API handler (`api/index.ts`):
+1. Push repository ke GitHub/GitLab, lalu **Import Project** di Vercel.
+2. Vercel otomatis membaca `vercel.json` (`npm run build`, output `dist`, rewrite `/api/*` ke `/api/index.ts`).
+3. Jika nanti backend VPS (FastAPI/Node + PostgreSQL + Redis + WebSocket) sudah aktif, tambahkan Environment Variable di Vercel:
+   - `VITE_API_BASE_URL=https://api.domain-vps-anda.com`
+   - `VITE_WS_URL=wss://api.domain-vps-anda.com/ws`
+   - *Catatan*: Tanpa VPS eksternal, Vercel Serverless berjalan dalam mode stateless dengan fallback sinkronisasi HTTP (`SYNC: HTTP (Serverless)`), bukan persistent WebSocket.
+

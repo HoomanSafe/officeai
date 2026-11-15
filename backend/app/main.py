@@ -10,9 +10,9 @@ from backend.app.api.registry import (
 from backend.app.config import settings
 
 app = FastAPI(
-    title="NEON AI TRADING HQ — Phase 1 Backend",
-    version="0.1.0",
-    description="Autonomous AI Trading Company Foundation (Phase 1)",
+    title="NEON AI TRADING HQ — Phase 2 Backend",
+    version="0.2.0",
+    description="Autonomous AI Trading Company Foundation & AI Employees (Phase 2)",
 )
 
 
@@ -50,8 +50,9 @@ ws_manager = ConnectionManager()
 async def health_check():
     return {
         "status": "ok",
-        "phase": "PHASE_1_FOUNDATION",
+        "phase": "PHASE_2_AI_EMPLOYEES",
         "mode": settings.trading_mode,
+        "margin_mode": settings.default_margin_mode,
         "live_locked": not settings.live_trading_enabled,
         "server_time": datetime.now(timezone.utc).isoformat(),
         "integrations": get_honest_integration_status(),

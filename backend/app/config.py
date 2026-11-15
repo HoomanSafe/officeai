@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     app_name: str = "NEON AI TRADING HQ"
     app_env: str = "development"
     trading_mode: str = "DEMO"
+    default_margin_mode: str = "CROSS"
     live_trading_enabled: bool = False
 
     database_url: str = ""

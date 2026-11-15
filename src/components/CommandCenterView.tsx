@@ -1,6 +1,16 @@
-import type { OfficeSnapshot, TradingMode } from '../types/hq';
+import { useState } from 'react';
+import type {
+  CandleTimeframe,
+  CredentialsStatus,
+  OfficeSnapshot,
+  TradingMode,
+} from '../types/hq';
 import type { WsStatus } from '../hooks/useHqSocket';
 import { Lock, Play, ShieldAlert, ShieldCheck } from './navConfig';
+import { AccountBalanceSummary } from './AccountBalanceSummary';
+import { TestnetSetupModal } from './TestnetSetupModal';
+
+const ALL_TIMEFRAMES: CandleTimeframe[] = ['5m', '15m', '1h', '4h', '1d'];
 
 interface CommandCenterViewProps {
   snapshot: OfficeSnapshot;
@@ -8,6 +18,17 @@ interface CommandCenterViewProps {
   onChangeMode: (mode: TradingMode) => void;
   onStartDrill: () => void;
   onToggleKillSwitch: (active: boolean) => void;
+  onReconcile: () => Promise<unknown>;
+  onFetchCredentialsStatus: () => Promise<CredentialsStatus | null>;
+  onUpdateAutoTrade: (patch: {
+    enabled?: boolean;
+    autoExecuteOnApproval?: boolean;
+    intervalMinutes?: number;
+    enabledSymbols?: string[];
+    enabledTimeframes?: CandleTimeframe[];
+    runImmediate?: boolean;
+  }) => Promise<unknown>;
+  onRunAutoTradeCycle: () => Promise<unknown>;
   onOpenOffice3D: () => void;
 }
 
@@ -17,9 +38,39 @@ export function CommandCenterView({
   onChangeMode,
   onStartDrill,
   onToggleKillSwitch,
+  onReconcile,
+  onFetchCredentialsStatus,
+  onUpdateAutoTrade,
+  onRunAutoTradeCycle,
   onOpenOffice3D,
 }: CommandCenterViewProps) {
+  const [setupOpen, setSetupOpen] = useState(false);
   const activeEmployees = snapshot.employees.filter((e) => e.state !== 'IDLE').length;
+  const activeFeed = snapshot.marketData.feeds[snapshot.marketData.activeSymbol];
+  const { execution, riskConfig, autoTrade } = snapshot;
+  const targetAccount =
+    snapshot.mode === 'TESTNET' ? execution.testnetAccount : execution.paperAccount;
+  const isDemoMode = snapshot.mode === 'DEMO';
+
+  const toggleSymbol = (sym: string) => {
+    const exists = autoTrade.enabledSymbols.includes(sym);
+    const next = exists
+      ? autoTrade.enabledSymbols.filter((s) => s !== sym)
+      : [...autoTrade.enabledSymbols, sym];
+    if (next.length > 0) {
+      void onUpdateAutoTrade({ enabledSymbols: next, runImmediate: false });
+    }
+  };
+
+  const toggleTimeframe = (tf: CandleTimeframe) => {
+    const exists = autoTrade.enabledTimeframes.includes(tf);
+    const next = exists
+      ? autoTrade.enabledTimeframes.filter((t) => t !== tf)
+      : [...autoTrade.enabledTimeframes, tf];
+    if (next.length > 0) {
+      void onUpdateAutoTrade({ enabledTimeframes: next, runImmediate: false });
+    }
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -27,7 +78,7 @@ export function CommandCenterView({
       <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
         <div>
           <div className="text-xs font-mono text-cyan-400">
-            Phase 1 Foundation · Server Time {new Date(snapshot.serverTime).toLocaleTimeString()}
+            {snapshot.phase.replace(/_/g, ' ')} · Server Time {new Date(snapshot.serverTime).toLocaleTimeString()}
           </div>
           <h1 className="mt-1 font-[var(--font-display)] text-2xl font-semibold text-white">
             Command Center
@@ -47,7 +98,7 @@ export function CommandCenterView({
           </button>
           <button
             type="button"
-            disabled={snapshot.drillRunning || snapshot.riskConfig.emergencyKillSwitch}
+            disabled={snapshot.drillRunning || riskConfig.emergencyKillSwitch}
             onClick={onStartDrill}
             className="px-4 py-2 rounded-lg text-xs font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-1.5"
           >
@@ -56,57 +107,101 @@ export function CommandCenterView({
           </button>
           <button
             type="button"
-            onClick={() => onToggleKillSwitch(!snapshot.riskConfig.emergencyKillSwitch)}
+            onClick={() => onToggleKillSwitch(!riskConfig.emergencyKillSwitch)}
             className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 ${
-              snapshot.riskConfig.emergencyKillSwitch
+              riskConfig.emergencyKillSwitch
                 ? 'bg-rose-600 text-white hover:bg-rose-500'
                 : 'bg-slate-900 border border-rose-500/40 text-rose-300 hover:bg-rose-950/50'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>
-              {snapshot.riskConfig.emergencyKillSwitch ? 'Kill Switch ARMED' : 'Emergency Kill Switch'}
+              {riskConfig.emergencyKillSwitch ? 'Kill Switch ARMED' : 'Emergency Kill Switch'}
             </span>
           </button>
         </div>
       </div>
 
-      {/* Primary KPI Grid — Honest Phase 1 Metrics */}
+      {/* Dynamic USDⓈ-M Futures & PAPER Balance Summary */}
+      <AccountBalanceSummary
+        snapshot={snapshot}
+        onReconcile={onReconcile}
+        onChangeMode={onChangeMode}
+        onOpenSetupModal={() => setSetupOpen(true)}
+      />
+
+      {/* Primary KPI Grid — Honest Real-Time Mode Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400">Account Equity (Binance USDⓈ-M)</div>
-          <div className="mt-2 font-mono text-xl font-semibold text-amber-300 tabular-nums">
-            NOT CONNECTED
+          <div className="text-xs text-slate-400">
+            Account Equity ({snapshot.mode === 'TESTNET' ? 'Binance Testnet' : snapshot.mode === 'PAPER' ? 'PAPER Simulator' : 'DEMO Read-Only'})
           </div>
-          <div className="mt-1 text-xs text-slate-500">Phase 5 Exchange Adapter Pending</div>
+          <div
+            className={`mt-2 font-mono text-xl font-semibold tabular-nums ${
+              isDemoMode
+                ? 'text-slate-300'
+                : targetAccount.connected
+                  ? 'text-white'
+                  : 'text-amber-300'
+            }`}
+          >
+            {isDemoMode
+              ? 'DEMO (Read-Only)'
+              : targetAccount.connected
+                ? `$${targetAccount.equityUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : 'NOT CONNECTED'}
+          </div>
+          <div className="mt-1 text-xs text-slate-500 truncate">
+            {isDemoMode
+              ? 'Switch to PAPER or TESTNET to execute'
+              : targetAccount.connected
+                ? `Avail Margin $${targetAccount.availableBalanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : (targetAccount.errorMessage ?? 'Binance Testnet keys required in .env')}
+          </div>
         </div>
 
         <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400">Available Margin / Active Positions</div>
+          <div className="text-xs text-slate-400">Active Positions / Margin Mode</div>
           <div className="mt-2 font-mono text-xl font-semibold text-slate-200 tabular-nums">
-            0 / {snapshot.riskConfig.maxSimultaneousPositions} Max
+            {isDemoMode ? 0 : targetAccount.openPositionsCount} / {riskConfig.maxSimultaneousPositions} Max
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            {snapshot.riskConfig.marginMode} · {snapshot.riskConfig.positionMode}
+            {riskConfig.marginMode} {riskConfig.maxLeverage}x · {riskConfig.positionMode}
           </div>
         </div>
 
         <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4">
           <div className="text-xs text-slate-400">Daily PnL / Drawdown Limit</div>
-          <div className="mt-2 font-mono text-xl font-semibold text-slate-200 tabular-nums">
-            0.00% / -{snapshot.riskConfig.maxDailyLossPct.toFixed(2)}%
+          <div
+            className={`mt-2 font-mono text-xl font-semibold tabular-nums ${
+              isDemoMode || !targetAccount.connected
+                ? 'text-slate-200'
+                : targetAccount.dailyPnlPct >= 0
+                  ? 'text-emerald-400'
+                  : 'text-rose-400'
+            }`}
+          >
+            {isDemoMode || !targetAccount.connected
+              ? `0.00% / -${riskConfig.maxDailyLossPct.toFixed(2)}%`
+              : `${targetAccount.dailyPnlPct >= 0 ? '+' : ''}${targetAccount.dailyPnlPct.toFixed(2)}% / -${riskConfig.maxDailyLossPct.toFixed(2)}%`}
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            Risk per trade capped at {snapshot.riskConfig.riskPerTradePct.toFixed(2)}%
+            Risk per trade capped at {riskConfig.riskPerTradePct.toFixed(2)}%
           </div>
         </div>
 
         <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4">
-          <div className="text-xs text-slate-400">AI Workforce & Market Regime</div>
-          <div className="mt-2 font-mono text-xl font-semibold text-cyan-300 tabular-nums">
-            {activeEmployees} / {snapshot.employees.length} Active
+          <div className="text-xs text-slate-400">
+            {snapshot.marketData.activeSymbol} Mark Price & Regime
           </div>
-          <div className="mt-1 text-xs text-slate-500">Regime Detector: Phase 3 Pending</div>
+          <div className="mt-2 font-mono text-xl font-semibold text-cyan-300 tabular-nums">
+            {activeFeed?.markPrice
+              ? `$${activeFeed.markPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : activeFeed?.status ?? 'NOT CONNECTED'}
+          </div>
+          <div className="mt-1 text-xs text-slate-500 font-mono">
+            {activeEmployees}/{snapshot.employees.length} Agents · {activeFeed?.indicators.regime ?? 'UNKNOWN'}
+          </div>
         </div>
       </div>
 
@@ -149,6 +244,124 @@ export function CommandCenterView({
           <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-400 flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>{snapshot.liveLockReason}</span>
+          </div>
+
+          {/* Autonomous Autopilot Loop Control */}
+          <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Autonomous AI Autopilot</span>
+              <span
+                className={`text-[11px] font-mono px-2 py-0.5 rounded border ${
+                  autoTrade.enabled
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-900 border-slate-700 text-slate-400'
+                }`}
+              >
+                {autoTrade.enabled ? `ACTIVE (${autoTrade.intervalMinutes}m)` : 'PAUSED'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={riskConfig.emergencyKillSwitch}
+                onClick={() => void onUpdateAutoTrade({ enabled: !autoTrade.enabled, runImmediate: !autoTrade.enabled })}
+                className={`px-3 py-2 rounded-lg text-xs font-mono font-medium border transition-colors ${
+                  autoTrade.enabled
+                    ? 'bg-rose-500/15 border-rose-500/50 text-rose-200 hover:bg-rose-500/25'
+                    : 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500'
+                }`}
+              >
+                {autoTrade.enabled ? 'Pause Autopilot' : 'Start Autopilot'}
+              </button>
+              <button
+                type="button"
+                disabled={snapshot.debateRunning || riskConfig.emergencyKillSwitch}
+                onClick={() => void onRunAutoTradeCycle()}
+                className="px-3 py-2 rounded-lg text-xs font-mono bg-slate-900 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
+              >
+                {snapshot.debateRunning ? 'Debating...' : 'Run Cycle Now'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoTrade.autoExecuteOnApproval}
+                  onChange={(e) =>
+                    void onUpdateAutoTrade({ autoExecuteOnApproval: e.target.checked, runImmediate: false })
+                  }
+                  className="accent-cyan-500"
+                />
+                <span>Auto-Execute on CEO+CRO Approval</span>
+              </label>
+              <select
+                value={autoTrade.intervalMinutes}
+                onChange={(e) =>
+                  void onUpdateAutoTrade({ intervalMinutes: Number(e.target.value), runImmediate: false })
+                }
+                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 font-mono text-slate-200"
+              >
+                <option value={1}>1m</option>
+                <option value={3}>3m</option>
+                <option value={5}>5m</option>
+                <option value={15}>15m</option>
+              </select>
+            </div>
+
+            {/* Multi-Pair & Multi-Timeframe Autopilot Matrix */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[11px] font-mono text-slate-400">
+                Pairs ({autoTrade.enabledSymbols.length}):
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {snapshot.marketData.watchedSymbols.map((sym) => {
+                  const selected = autoTrade.enabledSymbols.includes(sym);
+                  return (
+                    <button
+                      key={sym}
+                      type="button"
+                      onClick={() => toggleSymbol(sym)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
+                        selected
+                          ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-200'
+                          : 'bg-slate-900 border-slate-800 text-slate-500'
+                      }`}
+                    >
+                      {sym.replace('USDT', '')}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-[11px] font-mono text-slate-400 pt-1">
+                Timeframes ({autoTrade.enabledTimeframes.length}) · {autoTrade.enabledSymbols.length * autoTrade.enabledTimeframes.length} Slots:
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {ALL_TIMEFRAMES.map((tf) => {
+                  const selected = autoTrade.enabledTimeframes.includes(tf);
+                  return (
+                    <button
+                      key={tf}
+                      type="button"
+                      onClick={() => toggleTimeframe(tf)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
+                        selected
+                          ? 'bg-violet-500/20 border-violet-500/60 text-violet-200'
+                          : 'bg-slate-900 border-slate-800 text-slate-500'
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="text-[11px] font-mono text-slate-400 bg-slate-900/70 rounded p-2">
+              {autoTrade.lastOutcome}
+            </div>
           </div>
         </div>
 
@@ -249,6 +462,15 @@ export function CommandCenterView({
           </div>
         </div>
       </div>
+
+      <TestnetSetupModal
+        open={setupOpen}
+        snapshot={snapshot}
+        onClose={() => setSetupOpen(false)}
+        onFetchCredentialsStatus={onFetchCredentialsStatus}
+        onReconcile={onReconcile}
+        onChangeMode={onChangeMode}
+      />
     </div>
   );
 }

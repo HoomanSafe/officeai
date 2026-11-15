@@ -1,4 +1,10 @@
-import type { EmployeeRecord, RoomDefinition, RiskConfig, IntegrationItem } from '../src/types/hq';
+import type {
+  AIRouterPolicy,
+  EmployeeRecord,
+  IntegrationItem,
+  RiskConfig,
+  RoomDefinition,
+} from '../src/types/hq.ts';
 
 export const OFFICE_ROOMS: RoomDefinition[] = [
   {
@@ -47,7 +53,7 @@ export const OFFICE_ROOMS: RoomDefinition[] = [
     name: 'Risk Management Office',
     shortName: 'Risk Office',
     wing: 'North Wing',
-    purpose: 'Independent risk validation, position sizing, daily drawdown limits, and emergency kill switch.',
+    purpose: 'Independent risk validation, CROSS margin safety, position sizing, drawdown limits, and emergency kill switch.',
     center: { x: 11, z: -9.5 },
     size: { w: 8.5, d: 7 },
     accentColor: '#F59E0B',
@@ -181,9 +187,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'CEO_OFFICE',
       currentRoom: 'CEO_OFFICE',
       state: 'IDLE',
-      currentTask: 'Standby in CEO Office · Phase 1 Registry Active',
-      assignedModel: 'gemini-2.5-pro (Planned Phase 2)',
+      currentTask: 'Phase 2 Agent Ready · Awaiting Market Feed (Phase 3)',
+      assignedModel: 'gemini-4-hydrogen',
       provider: 'Gemini',
+      fallbackProvider: 'Claude',
       accentColor: '#8B5CF6',
       canVeto: false,
       responsibilities: [
@@ -203,9 +210,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'TRADING_FLOOR',
       currentRoom: 'TRADING_FLOOR',
       state: 'IDLE',
-      currentTask: 'Standby on Trading Floor · Awaiting Phase 3 Market Data',
-      assignedModel: 'claude-3-7-sonnet (Planned Phase 2)',
-      provider: 'Claude',
+      currentTask: 'Phase 2 Agent Ready · Directional synthesis standby',
+      assignedModel: 'gemini-4-hydrogen',
+      provider: 'Gemini',
+      fallbackProvider: 'Claude',
       accentColor: '#06B6D4',
       canVeto: false,
       responsibilities: [
@@ -225,9 +233,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'TECHNICAL_ROOM',
       currentRoom: 'TECHNICAL_ROOM',
       state: 'IDLE',
-      currentTask: 'Standby in Technical Room · Multi-timeframe pipeline queued',
-      assignedModel: 'gemini-2.5-flash (Planned Phase 2)',
+      currentTask: 'Phase 2 Agent Ready · Multi-timeframe schema armed',
+      assignedModel: 'gemini-3.1-flash-lite',
       provider: 'Gemini',
+      fallbackProvider: 'Ollama',
       accentColor: '#38BDF8',
       canVeto: false,
       responsibilities: [
@@ -247,9 +256,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'SMC_ROOM',
       currentRoom: 'SMC_ROOM',
       state: 'IDLE',
-      currentTask: 'Standby in SMC Room · Structure detector queued',
-      assignedModel: 'claude-3-7-sonnet (Planned Phase 2)',
-      provider: 'Claude',
+      currentTask: 'Phase 2 Agent Ready · Structure schema armed',
+      assignedModel: 'gemini-3.1-flash-lite',
+      provider: 'Gemini',
+      fallbackProvider: 'Claude',
       accentColor: '#A855F7',
       canVeto: false,
       responsibilities: [
@@ -269,9 +279,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'ORDER_FLOW_LAB',
       currentRoom: 'ORDER_FLOW_LAB',
       state: 'IDLE',
-      currentTask: 'Standby in Order Flow Lab · Stream adapter not connected',
-      assignedModel: 'qwen2.5:14b via Ollama (Planned Phase 2)',
-      provider: 'Ollama',
+      currentTask: 'Phase 2 Agent Ready · Exchange stream Not Connected',
+      assignedModel: 'gemini-3.1-flash-lite',
+      provider: 'Gemini',
+      fallbackProvider: 'Ollama',
       accentColor: '#2DD4BF',
       canVeto: false,
       responsibilities: [
@@ -291,9 +302,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'QUANT_LAB',
       currentRoom: 'QUANT_LAB',
       state: 'IDLE',
-      currentTask: 'Standby in Quant Lab · Backtest engine scheduled for Phase 6',
-      assignedModel: 'gemini-2.5-pro (Planned Phase 2)',
+      currentTask: 'Phase 2 Agent Ready · Quant validation schema armed',
+      assignedModel: 'gemini-3.1-flash-lite',
       provider: 'Gemini',
+      fallbackProvider: 'Claude',
       accentColor: '#6366F1',
       canVeto: false,
       responsibilities: [
@@ -313,14 +325,15 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'RISK_OFFICE',
       currentRoom: 'RISK_OFFICE',
       state: 'IDLE',
-      currentTask: 'Standby in Risk Office · Deterministic guardrails armed',
-      assignedModel: 'Deterministic Python + Gemini Audit',
+      currentTask: 'Phase 2 Agent + CROSS Margin Guardrails Armed',
+      assignedModel: 'gemini-4-hydrogen',
       provider: 'Deterministic Python',
+      fallbackProvider: 'Gemini',
       accentColor: '#F59E0B',
       canVeto: true,
       responsibilities: [
         'Independently audit every proposed trade with absolute VETO authority',
-        'Enforce 0.15% risk/trade, 1.0% max daily drawdown, max 2 positions',
+        'Enforce CROSS margin protection: mandatory verified SL + 0.15% risk/trade',
         'Trigger emergency kill switch on unverified stop loss or stale data',
       ],
       targetSlot: slotOf('RISK_OFFICE', 0),
@@ -335,9 +348,10 @@ export function createInitialEmployees(): EmployeeRecord[] {
       homeRoom: 'EXECUTION_CENTER',
       currentRoom: 'EXECUTION_CENTER',
       state: 'IDLE',
-      currentTask: 'Standby in Execution Center · Binance API Not Connected',
-      assignedModel: 'Deterministic Python Engine',
+      currentTask: 'Phase 2 Agent Ready · Binance Execution Not Connected',
+      assignedModel: 'deterministic-exec-v1',
       provider: 'Deterministic Python',
+      fallbackProvider: 'Gemini',
       accentColor: '#10B981',
       canVeto: false,
       responsibilities: [
@@ -357,14 +371,27 @@ export const INITIAL_RISK_CONFIG: RiskConfig = {
   maxSimultaneousPositions: 2,
   targetRiskReward: 2.0,
   maxLeverage: 3,
-  marginMode: 'ISOLATED',
+  marginMode: 'CROSS',
   positionMode: 'ONE_WAY',
   emergencyKillSwitch: false,
 };
 
-export function buildIntegrationStatuses(): IntegrationItem[] {
+export const INITIAL_AI_ROUTER_POLICY: AIRouterPolicy = {
+  maxTokensPerCall: 2048,
+  dailyBudgetUsd: 5.0,
+  spentTodayUsd: 0,
+  timeoutMs: 40000,
+  maxRetries: 1,
+  enableFallback: true,
+};
+
+export function buildIntegrationStatuses(
+  marketStreamStatus: 'CONNECTED' | 'POLLING' | 'DEGRADED' | 'NOT_CONNECTED' = 'NOT_CONNECTED',
+  testnetConnected = false,
+): IntegrationItem[] {
   const hasGemini = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY');
   const hasClaude = Boolean(process.env.ANTHROPIC_API_KEY);
+  const hasOllama = Boolean(process.env.OLLAMA_BASE_URL);
   const hasBinanceTestnet = Boolean(process.env.BINANCE_API_KEY && process.env.BINANCE_API_SECRET && process.env.BINANCE_TESTNET !== 'false');
   const hasBinanceLive = Boolean(process.env.BINANCE_LIVE_API_KEY && process.env.BINANCE_LIVE_API_SECRET);
   const hasPostgres = Boolean(process.env.DATABASE_URL);
@@ -372,11 +399,58 @@ export function buildIntegrationStatuses(): IntegrationItem[] {
 
   return [
     {
-      id: 'int-binance-testnet',
-      name: 'Binance USDⓈ-M Futures (Testnet)',
+      id: 'int-binance-public',
+      name: 'Binance USDⓈ-M Public Market Feed',
       category: 'Exchange',
-      status: hasBinanceTestnet ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: hasBinanceTestnet ? 'Credentials present in backend env; Phase 5 execution engine not enabled yet.' : 'Not configured in environment. Phase 5 required.',
+      status:
+        marketStreamStatus === 'CONNECTED' || marketStreamStatus === 'POLLING'
+          ? 'CONNECTED'
+          : marketStreamStatus === 'DEGRADED'
+            ? 'STANDBY'
+            : 'NOT_CONNECTED',
+      detail: '0 API keys required · Live OHLCV candles, mark price, funding rate, OI & order book via fapi.binance.com.',
+      phaseTarget: 'Phase 3',
+    },
+    {
+      id: 'int-gemini',
+      name: 'Gemini AI Provider (@google/genai)',
+      category: 'AI Provider',
+      status: hasGemini ? 'CONNECTED' : 'NOT_CONNECTED',
+      detail: hasGemini
+        ? 'Active primary AI engine via server-side @google/genai (sufficient alone; Claude/Ollama optional).'
+        : 'GEMINI_API_KEY not configured on server.',
+      phaseTarget: 'Phase 2',
+    },
+    {
+      id: 'int-claude',
+      name: 'Anthropic Claude Provider (Optional)',
+      category: 'AI Provider',
+      status: hasClaude ? 'CONNECTED' : 'STANDBY',
+      detail: hasClaude
+        ? 'Anthropic API adapter armed in server AI Router.'
+        : 'Optional secondary provider (not required; router defaults cleanly to Gemini).',
+      phaseTarget: 'Phase 2',
+    },
+    {
+      id: 'int-ollama',
+      name: 'Ollama Local Model Runtime (Optional)',
+      category: 'AI Provider',
+      status: hasOllama ? 'STANDBY' : 'NOT_CONNECTED',
+      detail: hasOllama
+        ? `Configured endpoint: ${process.env.OLLAMA_BASE_URL}`
+        : 'Optional local model runtime for Windows/VPS (not required when using Gemini).',
+      phaseTarget: 'Phase 2',
+    },
+    {
+      id: 'int-binance-testnet',
+      name: 'Binance Trading API (Testnet / Private)',
+      category: 'Exchange',
+      status: testnetConnected ? 'CONNECTED' : hasBinanceTestnet ? 'STANDBY' : 'NOT_CONNECTED',
+      detail: testnetConnected
+        ? 'Connected to Binance USDⓈ-M Futures Testnet (testnet.binancefuture.com) with SL/TP verification armed.'
+        : hasBinanceTestnet
+          ? 'BINANCE_API_KEY detected in server env; click Reconcile in Positions to sync Testnet wallet.'
+          : 'Set BINANCE_API_KEY & BINANCE_API_SECRET in server .env to enable TESTNET execution (PAPER works without keys).',
       phaseTarget: 'Phase 5',
     },
     {
@@ -384,39 +458,15 @@ export function buildIntegrationStatuses(): IntegrationItem[] {
       name: 'Binance USDⓈ-M Futures (LIVE)',
       category: 'Exchange',
       status: hasBinanceLive ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: 'Locked by policy until backtesting, paper trading, and reconciliation pass acceptance tests.',
+      detail: 'Locked by policy until Phase 5-7 Testnet SL/TP verification, backtesting, and failure tests pass.',
       phaseTarget: 'Phase 7',
-    },
-    {
-      id: 'int-gemini',
-      name: 'Gemini AI Provider',
-      category: 'AI Provider',
-      status: hasGemini ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: hasGemini ? 'Server env key detected; agent reasoning router activates in Phase 2.' : 'GEMINI_API_KEY not configured on server.',
-      phaseTarget: 'Phase 2',
-    },
-    {
-      id: 'int-claude',
-      name: 'Anthropic Claude Provider',
-      category: 'AI Provider',
-      status: hasClaude ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: hasClaude ? 'Server env key detected; router activates in Phase 2.' : 'ANTHROPIC_API_KEY not configured on server.',
-      phaseTarget: 'Phase 2',
-    },
-    {
-      id: 'int-ollama',
-      name: 'Ollama Local Model Runtime',
-      category: 'AI Provider',
-      status: 'NOT_CONNECTED',
-      detail: 'Local Ollama endpoint not connected in preview sandbox (configured for Windows/VPS Docker).',
-      phaseTarget: 'Phase 2',
     },
     {
       id: 'int-postgres',
       name: 'PostgreSQL Persistent Store',
       category: 'Infrastructure',
       status: hasPostgres ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: 'Schema & SQLAlchemy models scaffolded in backend/ for Docker/VPS; preview uses authoritative Node memory store.',
+      detail: '19 SQLAlchemy models defined in backend/ for Docker/VPS.',
       phaseTarget: 'Phase 1 VPS',
     },
     {
@@ -424,7 +474,7 @@ export function buildIntegrationStatuses(): IntegrationItem[] {
       name: 'Redis Cache & PubSub Queue',
       category: 'Infrastructure',
       status: hasRedis ? 'STANDBY' : 'NOT_CONNECTED',
-      detail: 'Configured in docker-compose.yml for VPS deployment; preview uses direct WebSocket broadcast.',
+      detail: 'Configured in docker-compose.yml for VPS deployment.',
       phaseTarget: 'Phase 1 VPS',
     },
   ];

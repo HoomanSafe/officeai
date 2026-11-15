@@ -4,12 +4,10 @@ import { NeonOfficeCanvas } from './office3d/NeonOfficeCanvas';
 import { Office3DHud } from './components/Office3DHud';
 import { CommandCenterView } from './components/CommandCenterView';
 import { EmployeesView } from './components/EmployeesView';
-import {
-  MarketAnalysisView,
-  PositionsView,
-  TradeJournalView,
-  WarRoomView,
-} from './components/PhasePendingViews';
+import { MarketAnalysisView } from './components/MarketAnalysisView';
+import { WarRoomView } from './components/WarRoomView';
+import { PositionsView } from './components/PositionsView';
+import { TradeHistoryView } from './components/TradeHistoryView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { SettingsView } from './components/SettingsView';
 import { AlertTriangle, NAV_ITEMS, type NavSection, X } from './components/navConfig';
@@ -26,6 +24,19 @@ export default function App() {
     startPhase1Drill,
     toggleKillSwitch,
     updateRiskConfig,
+    runAgentAnalysis,
+    updateAgentConfig,
+    updateRouterPolicy,
+    refreshMarketData,
+    updateMarketConfig,
+    startWarRoomDebate,
+    reconcileExecution,
+    resetPaperAccount,
+    executeTradeOrder,
+    closeExecutionPosition,
+    updateAutoTrade,
+    runAutoTradeCycle,
+    fetchCredentialsStatus,
   } = useHqSocket();
 
   const [activeSection, setActiveSection] = useState<NavSection>('OFFICE_3D');
@@ -86,10 +97,14 @@ export default function App() {
           <span className="text-slate-600">·</span>
           <span
             className={`whitespace-nowrap ${
-              wsStatus === 'CONNECTED' ? 'text-emerald-400' : 'text-amber-300'
+              wsStatus === 'CONNECTED'
+                ? 'text-emerald-400'
+                : wsStatus === 'HTTP_POLLING'
+                  ? 'text-cyan-300'
+                  : 'text-amber-300'
             }`}
           >
-            WS: {wsStatus}
+            {wsStatus === 'HTTP_POLLING' ? 'SYNC: HTTP (Serverless)' : `WS: ${wsStatus}`}
           </span>
         </div>
       </header>
@@ -153,6 +168,10 @@ export default function App() {
                 onChangeMode={setTradingMode}
                 onStartDrill={startPhase1Drill}
                 onToggleKillSwitch={(active) => toggleKillSwitch(active, 'Command Center Toggle')}
+                onReconcile={reconcileExecution}
+                onFetchCredentialsStatus={fetchCredentialsStatus}
+                onUpdateAutoTrade={updateAutoTrade}
+                onRunAutoTradeCycle={runAutoTradeCycle}
                 onOpenOffice3D={() => setActiveSection('OFFICE_3D')}
               />
             )}
@@ -160,32 +179,44 @@ export default function App() {
               <EmployeesView
                 employees={snapshot.employees}
                 rooms={snapshot.rooms}
+                agentReports={snapshot.agentReports}
+                aiRouterPolicy={snapshot.aiRouterPolicy}
                 onDispatchTask={dispatchEmployeeTask}
+                onRunAgentAnalysis={runAgentAnalysis}
+                onUpdateAgentConfig={updateAgentConfig}
               />
             )}
             {activeSection === 'WAR_ROOM' && (
               <WarRoomView
                 snapshot={snapshot}
-                onNavigateSettings={() => setActiveSection('SETTINGS')}
+                onStartDebate={startWarRoomDebate}
+                onExecuteApproved={executeTradeOrder}
+                onUpdateAutoTrade={updateAutoTrade}
+                onChangeMode={setTradingMode}
+                onOpenPositions={() => setActiveSection('POSITIONS')}
+                onOpenOffice3D={() => setActiveSection('OFFICE_3D')}
               />
             )}
             {activeSection === 'MARKET_ANALYSIS' && (
               <MarketAnalysisView
                 snapshot={snapshot}
+                onRefreshMarket={refreshMarketData}
+                onUpdateMarketConfig={updateMarketConfig}
                 onNavigateSettings={() => setActiveSection('SETTINGS')}
               />
             )}
             {activeSection === 'POSITIONS' && (
               <PositionsView
                 snapshot={snapshot}
-                onNavigateSettings={() => setActiveSection('SETTINGS')}
+                onChangeMode={setTradingMode}
+                onReconcile={reconcileExecution}
+                onResetPaper={resetPaperAccount}
+                onExecuteOrder={executeTradeOrder}
+                onClosePosition={closeExecutionPosition}
               />
             )}
-            {activeSection === 'TRADE_JOURNAL' && (
-              <TradeJournalView
-                snapshot={snapshot}
-                onNavigateSettings={() => setActiveSection('SETTINGS')}
-              />
+            {activeSection === 'TRADE_HISTORY' && (
+              <TradeHistoryView snapshot={snapshot} />
             )}
             {activeSection === 'ANALYTICS' && <AnalyticsView snapshot={snapshot} />}
             {activeSection === 'SETTINGS' && (
@@ -194,6 +225,7 @@ export default function App() {
                 onChangeMode={setTradingMode}
                 onToggleKillSwitch={toggleKillSwitch}
                 onUpdateRiskConfig={updateRiskConfig}
+                onUpdateRouterPolicy={updateRouterPolicy}
               />
             )}
           </div>
